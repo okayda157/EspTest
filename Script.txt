@@ -1,0 +1,105 @@
+-- abaixo estará a lib da nossa UI
+
+local DiscordLib = loadstring(game:HttpGet"https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/discord%20lib.txt")()
+
+local win = DiscordLib:Window("discord library")
+
+local serv = win:Server("Preview", "")
+
+local btns = serv:Channel("Buttons")
+
+btns:Button("ESP", function(local equipeCor = BrickColor.new("Bright blue")  -- Substitua com a cor desejada para a equipe
+    local inimigoCor = BrickColor.new("Bright red")  -- Substitua com a cor desejada para os inimigos
+    
+    -- Definir o campo de visão (FOV) em graus
+    local fovAngle = 90  -- Substitua com o ângulo de visão desejado em graus
+    
+    -- Variáveis para controlar a ativação/desativação dos recursos
+    local espAtivado = false
+    local fovAtivado = false
+    
+    -- Função para calcular o ângulo entre dois vetores
+    local function getAngleBetweenVectors(vec1, vec2)
+        return math.acos(vec1:Dot(vec2) / (vec1.magnitude * vec2.magnitude)) * (180 / math.pi)
+    end
+    
+    -- Função para desenhar uma linha entre dois pontos no jogo
+    local function drawLine(point1, point2, color)
+        local line = Instance.new("Part")
+        line.Anchored = true
+        line.CanCollide = false
+        line.Size = Vector3.new(0.1, 0.1, (point2 - point1).magnitude)
+        line.CFrame = CFrame.new(point1, point2) * CFrame.new(0, 0, -line.Size.Z/2)
+        line.BrickColor = color
+        line.Parent = game.Workspace
+        return line
+    end
+    
+    -- Função para ativar/desativar o ESP
+    local function alternarESP()
+        espAtivado = not espAtivado
+        if not espAtivado then
+            -- Remover todas as linhas e redefinir as cores dos jogadores
+            for _, player in ipairs(game.Players:GetPlayers()) do
+                for _, character in ipairs(player.Character:GetChildren()) do
+                    if character:IsA("BasePart") then
+                        character.BrickColor = BrickColor.new("White")
+                    end
+                end
+            end
+            for _, line in ipairs(game.Workspace:GetChildren()) do
+                if line:IsA("Part") then
+                    line:Destroy()
+                end
+            end
+        end
+    end
+    
+    -- Função para ativar/desativar o campo de visão (FOV)
+    local function alternarFOV()
+        fovAtivado = not fovAtivado
+    end
+    
+    -- Atualizar as cores dos jogadores da equipe e inimigos, desenhar linhas para amigos e inimigos e aplicar o FOV
+    game.RunService.RenderStepped:Connect(function()
+        if espAtivado then
+            for _, player in ipairs(game.Players:GetPlayers()) do
+                if player ~= game.Players.LocalPlayer then
+                    local direction = (player.Character.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).unit
+                    local angle = getAngleBetweenVectors(game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame.lookVector, direction)
+                    if angle <= fovAngle / 2 or not fovAtivado then
+                        if player.Team == game.Players.LocalPlayer.Team then
+                            -- Jogador da equipe: destacar com a cor da equipe
+                            for _, character in ipairs(player.Character:GetChildren()) do
+                                if character:IsA("BasePart") then
+                                    character.BrickColor = equipeCor
+                                end
+                            end
+                            -- Desenhar linha para jogador da equipe
+                            local line = drawLine(game.Players.LocalPlayer.Character.HumanoidRootPart.Position, player.Character.HumanoidRootPart.Position, equipeCor)
+                        else
+                            -- Inimigo: destacar com a cor dos inimigos
+                            for _, character in ipairs(player.Character:GetChildren()) do
+                                if character:IsA("BasePart") then
+                                    character.BrickColor = inimigoCor
+                                end
+                            end
+                            -- Desenhar linha para inimigo
+                            local line = drawLine(game.Players.LocalPlayer.Character.HumanoidRootPart.Position, player.Character.HumanoidRootPart.Position, inimigoCor)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- Exemplo de ativação/desativação dos recursos com teclas específicas
+    game.Players.LocalPlayer:GetMouse().KeyDown:Connect(function(key)
+        if key == "p" then
+            alternarESP()
+        elseif key == "o" then
+            alternarFOV()
+        end
+    end))
+DiscordLib:Notification("Notification", "ESP!", "Okay!")
+end)
